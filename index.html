@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>4H Call</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="4H Call">
+<meta name="theme-color" content="#0e1110">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: blunt trading instrument. IDEA: a single signal lamp. PICTURE: the call panel.
+   COLOUR: near-black, mint = long, coral = bearish, grey = no edge. TYPE: Space Grotesk + Inter.
+   LAYOUT: one column, phone first. */
+:root{--bg:#0e1110;--card:#171b19;--line:#262c29;--ink:#eef2ef;--mut:#9aa39e;--long:#b8f5d0;--bear:#ffb4a6;--flat:#d4d8d5}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font:16px/1.5 Inter,system-ui,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);-webkit-text-size-adjust:100%}
+.wrap{max-width:560px;margin:0 auto;padding:14px max(16px,env(safe-area-inset-left)) 32px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:6px 0 12px}
+.tk{font:700 20px/1.2 'Space Grotesk',sans-serif;font-variant-numeric:tabular-nums}
+.up{color:var(--long)}.dn{color:var(--bear)}.mut{color:var(--mut)}.sm{font-size:13px}
+.btn{font:600 15px Inter,sans-serif;min-height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.btn:disabled{opacity:.6}
+.btn:focus-visible,input:focus-visible{outline:2px solid var(--long);outline-offset:2px}
+#msg{font-size:14px;color:var(--bear);margin:0 0 10px}#msg:empty{display:none}
+.call{border-radius:22px;padding:22px 20px;color:#0b0d0c;background:var(--flat);transition:background .4s}
+.call.long{background:var(--long)}.call.bear{background:var(--bear)}
+.lbl{font-weight:600;font-size:14px;opacity:.75}
+.word{font:700 clamp(52px,17vw,84px)/1 'Space Grotesk',sans-serif;letter-spacing:-.02em;margin:6px 0 8px}
+.sub{font-size:16px;max-width:38ch}
+.meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid rgba(0,0,0,.15)}
+.meta .k{display:block;font-size:13px;opacity:.7}.meta .v{font:700 22px 'Space Grotesk',sans-serif;white-space:nowrap;font-variant-numeric:tabular-nums}
+.win{margin-top:14px;font-weight:600;font-size:15px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:14px}
+h2{font:700 18px 'Space Grotesk',sans-serif;margin:0 0 6px}
+.f{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line)}.f:first-child{border-top:0}
+.f b{display:block;font-weight:600}.f .r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.m{margin:14px 0}.m .h{display:flex;justify-content:space-between;gap:10px;font-size:15px}.m .h span:last-child{white-space:nowrap;font-variant-numeric:tabular-nums}
+.bar{position:relative;height:10px;border-radius:5px;background:var(--line);margin-top:6px;overflow:hidden}
+.bar::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--bg)}
+.bar i{display:block;height:100%;background:var(--long)}.bar i.b{background:var(--bear)}.bar i.g{background:var(--mut)}
+.verdict{font-weight:600;margin:12px 0 0}
+label{display:block;font-weight:600;margin-bottom:6px}
+.row{display:flex;gap:8px}
+input{flex:1;font:16px Inter,sans-serif;min-height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:#0b0d0c;color:var(--ink)}
+.fine{color:var(--mut);font-size:13px;margin:18px 4px 0}
+@media(prefers-reduced-motion:reduce){.call{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div><div class="tk">SPY <span id="px">—</span> <span id="chg"></span></div><div class="mut sm" id="asof">No data yet</div></div>
+    <button id="refresh" class="btn" type="button">Refresh</button>
+  </header>
+  <p id="msg"></p>
+  <section id="call" class="call flat" aria-live="polite">
+    <div class="lbl" id="callFor">Next 4 hours</div>
+    <div class="word" id="word">—</div>
+    <div class="sub" id="sub">Add your free Twelve Data key in Settings to start.</div>
+    <div class="meta">
+      <div><span class="k">Up in this setup</span><span class="v" id="pup">—</span></div>
+      <div><span class="k">Past cases</span><span class="v" id="n">—</span></div>
+      <div><span class="k">Avg 4h move</span><span class="v" id="avg">—</span></div>
+    </div>
+    <div class="win" id="win"></div>
+  </section>
+  <section class="card"><h2>Why</h2><p class="mut sm" id="baseTxt">How often SPY rose over the window, by condition, across the full history.</p><div id="factors"></div></section>
+  <section class="card"><h2>Track record, past year</h2><p class="mut sm">Each call was made using only data available at that moment, then checked at the end of its window.</p><div id="track"></div><p id="verdict" class="verdict"></p></section>
+  <section class="card"><h2>Settings</h2>
+    <label for="key">Twelve Data API key</label>
+    <div class="row"><input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste key"><button id="save" class="btn" type="button">Save</button></div>
+    <p class="mut sm">Free key at twelvedata.com. Stored only on this phone. Each refresh uses 1 of your 800 daily credits; the app refreshes at most every 5 minutes.</p>
+  </section>
+  <p class="fine">SPY stands in for ES/MES and can't see overnight futures trading, so windows run during the stock session only and end no later than the 4:00 PM ET close. These are statistics, not advice: a 55% setup still loses 45% of the time.</p>
+</div>
+<script>
+{
+/*ENGINE*/
+const OPEN=570,CLOSE=960,IV=60,WARM=350,MINN=30;
+const closeMin=b=>Math.min(b.m+IV,CLOSE);
+function etNow(date){
+  const f=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false,weekday:'short'});
+  const p={};for(const x of f.formatToParts(date||new Date()))p[x.type]=x.value;
+  return {d:p.year+'-'+p.month+'-'+p.day,m:((+p.hour)%24)*60+(+p.minute),wd:p.weekday};
+}
+function parse(values){
+  return values.map(v=>{const s=String(v[0]).split(' ');const t=(s[1]||'00:00').split(':').map(Number);return {d:s[0],m:t[0]*60+t[1],o:+v[1],c:+v[2]};})
+    .filter(b=>b.d&&isFinite(b.c)&&isFinite(b.o)&&b.c>0&&b.m>=OPEN&&b.m<CLOSE)
+    .sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:a.m-b.m);
+}
+function analyze(B,now){
+  const N=B.length;if(N<WARM+250)throw new Error('Not enough history returned ('+N+' bars).');
+  const C=B.map(b=>b.c);
+  const ema=new Array(N);ema[0]=C[0];const k=2/51;for(let i=1;i<N;i++)ema[i]=C[i]*k+ema[i-1]*(1-k);
+  const S1=[0],S2=[0];for(let i=0;i<N;i++){const r=i?Math.log(C[i]/C[i-1]):0;S1.push(S1[i]+r);S2.push(S2[i]+r*r);}
+  const sd=(i,n)=>{const a=i-n+1,s=S1[i+1]-S1[a],q=S2[i+1]-S2[a];return Math.sqrt(Math.max(q/n-(s/n)**2,0));};
+  const feat=(i,b)=>{if(i<WARM)return null;const t=C[i]>ema[i]?1:0,mo=C[i]>C[i-7]?1:0,v=sd(i,35)>sd(i,350)?1:0;return {t,mo,v,b,st:t|(mo<<1)|(v<<2)|(b<<3)};};
+  const days=[];for(let i=0;i<N;i++){const L=days[days.length-1];if(!L||L.d!==B[i].d)days.push({d:B[i].d,s:i,e:i});else L.e=i;}
+  const wk=now.wd!=='Sat'&&now.wd!=='Sun';
+  const livePartial=wk&&now.d===B[N-1].d&&now.m>=OPEN&&now.m<CLOSE;
+  const samples=[];
+  for(let di=1;di<days.length;di++){
+    const D=days[di],out=[];
+    const add=(fi,em,epx,b)=>{const f=feat(fi,b);if(!f)return;const tg=Math.min(em+240,CLOSE);let j=-1;
+      for(let x=D.s;x<=D.e;x++)if(closeMin(B[x])<=tg)j=x;
+      if(j<0||closeMin(B[j])!==tg||(livePartial&&j===N-1))return;
+      const ret=C[j]/epx-1;out.push({t:f.t,mo:f.mo,v:f.v,b:f.b,st:f.st,ret,up:ret>0,d:D.d});};
+    if(B[D.s].m===OPEN)add(days[di-1].e,OPEN,B[D.s].o,0);
+    for(let x=D.s;x<=D.e;x++){const cm=closeMin(B[x]);if(cm>=630&&cm<=810&&!(livePartial&&x===N-1))add(x,cm,C[x],cm<=690?0:1);}
+    samples.push(out);
+  }
+  const cnt=Array.from({length:16},()=>({n:0,u:0,s:0}));
+  const callOf=c=>{if(c.n<MINN)return {p:null,call:0};const p=(c.u+1)/(c.n+2);return {p,call:p>=.55?1:p<=.45?-1:0};};
+  const rec=[];
+  for(const out of samples){
+    for(const s of out)rec.push({call:callOf(cnt[s.st]).call,up:s.up,ret:s.ret,d:s.d});
+    for(const s of out){const c=cnt[s.st];c.n++;c.u+=s.up?1:0;c.s+=s.ret;}
+  }
+  const flat=samples.flat();
+  const rate=(a,f)=>a.length?a.filter(f).length/a.length:null;
+  const mean=a=>a.length?a.reduce((x,y)=>x+y.ret,0)/a.length:null;
+  const marg=(key,val)=>{const a=flat.filter(s=>s[key]===val);return {n:a.length,p:rate(a,s=>s.up)};};
+  const allD=[...new Set(rec.map(x=>x.d))];const ci=Math.max(0,allD.length-250),cut=allD[ci];
+  const R=rec.filter(x=>x.d>=cut),L=R.filter(x=>x.call===1),Br=R.filter(x=>x.call===-1);
+  const track={n:R.length,days:allD.length-ci,from:cut,longN:L.length,longHit:rate(L,x=>x.up),bearN:Br.length,bearHit:rate(Br,x=>!x.up),
+    base:rate(R,x=>x.up),noCall:rate(R,x=>x.call===0),longAvg:mean(L),allAvg:mean(R),callHit:rate(L.concat(Br),x=>x.call===1?x.up:!x.up)};
+  const today=B[N-1].d===now.d;let mode,b,em;
+  if(wk&&today&&now.m>=OPEN&&now.m<810){mode='live';b=now.m<=720?0:1;em=now.m;}
+  else if(wk&&today&&now.m>=810&&now.m<CLOSE){mode='late';b=0;em=OPEN;}
+  else{mode='next';b=0;em=OPEN;}
+  const f=feat(N-1,b),c=cnt[f.st],cc=callOf(c);
+  const prevE=days.length>1?days[days.length-2].e:0;
+  return {cur:{t:f.t,mo:f.mo,v:f.v,b,mode,em,xm:Math.min(em+240,CLOSE),n:c.n,p:c.n?c.u/c.n:null,avg:c.n?c.s/c.n:null,call:cc.call},
+    track,baseAll:rate(flat,s=>s.up),samples:flat.length,
+    marg:{t:[marg('t',0),marg('t',1)],mo:[marg('mo',0),marg('mo',1)],v:[marg('v',0),marg('v',1)],b:[marg('b',0),marg('b',1)]},
+    last:B[N-1],px:C[N-1],chg:C[N-1]/C[prevE]-1,first:B[0].d};
+}
+/*END*/
+const $=id=>document.getElementById(id);
+const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}};
+const pct=(x,d=0)=>x==null?'—':(x*100).toFixed(d)+'%';
+const spct=x=>x==null?'—':(x>=0?'+':'')+(x*100).toFixed(2)+'%';
+let memCache=null;
+function readCache(){if(memCache)return memCache;try{const j=JSON.parse(LS.get('td_spy1h')||'null');if(j&&Array.isArray(j.v))return memCache=j;}catch(e){}return null;}
+function msg(t){$('msg').textContent=t||'';}
+function clock(now){const dn=new Date();let off=dn.getHours()*60+dn.getMinutes()-now.m;if(off>720)off-=1440;if(off<-720)off+=1440;
+  return m=>{m=((m+off)%1440+1440)%1440;let h=Math.floor(m/60);const mm=m%60,ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+String(mm).padStart(2,'0')+' '+ap;};}
+function render(data){
+  let A;const now=etNow();
+  try{A=analyze(parse(data.v),now);}catch(e){msg(e.message);return;}
+  const tl=clock(now),c=A.cur;
+  $('px').textContent=A.px.toFixed(2);
+  const ch=$('chg');ch.textContent=spct(A.chg);ch.className=A.chg>=0?'up':'dn';
+  const mins=Math.round((Date.now()-data.t)/60000);
+  $('asof').textContent='Last bar '+A.last.d.slice(5)+' '+tl(A.last.m)+' · fetched '+(mins<1?'just now':mins+' min ago');
+  const box=$('call');box.className='call '+(c.call===1?'long':c.call===-1?'bear':'flat');
+  $('word').textContent=c.n<MINN?'NO DATA':c.call===1?'LONG':c.call===-1?'BEARISH':'NO EDGE';
+  $('callFor').textContent=c.mode==='live'?(c.b?'Now → the close':'Now → next 4 hours'):c.mode==='late'?'Too late today · call for the next open':'Call for the next open';
+  const base=A.baseAll;
+  $('sub').textContent=c.n<MINN?'Not enough past cases of this setup to call it.':
+    c.call===1?'This setup has risen more often than a typical window ('+pct(base)+').':
+    c.call===-1?'This setup has fallen more often than not. Long-only? Sit this one out.':
+    'No clear edge. Up '+pct(c.p)+' of the time vs '+pct(base)+' for a typical window.';
+  $('pup').textContent=pct(c.p);$('n').textContent=String(c.n);$('avg').textContent=spct(c.avg);
+  const hrs=((c.xm-c.em)/60).toFixed(1).replace('.0','');
+  $('win').textContent=c.mode==='live'?'Hold until '+tl(c.xm)+' ('+hrs+'h)':'Enter at the open, '+tl(OPEN)+' · hold until '+tl(c.xm);
+  $('baseTxt').textContent='How often SPY rose over the window, by condition, across '+A.samples.toLocaleString()+' past windows since '+A.first+'. Typical: '+pct(base)+'.';
+  const F=[['Trend',c.t?'Above its 50-hour average':'Below its 50-hour average',A.marg.t[c.t]],
+    ['Momentum',c.mo?'Higher than a day ago':'Lower than a day ago',A.marg.mo[c.mo]],
+    ['Volatility',c.v?'Choppier than usual':'Calmer than usual',A.marg.v[c.v]],
+    ['Window',c.b?'Short, ends at the close':'Full 4 hours',A.marg.b[c.b]]];
+  const fx=$('factors');fx.textContent='';
+  for(const [k,s,m] of F){const row=document.createElement('div');row.className='f';
+    const l=document.createElement('div'),b=document.createElement('b'),sp=document.createElement('span');b.textContent=k;sp.className='mut sm';sp.textContent=s;l.append(b,sp);
+    const r=document.createElement('div');r.className='r';r.textContent='up '+pct(m.p);const sm=document.createElement('div');sm.className='mut sm';sm.textContent=m.n.toLocaleString()+' cases';r.append(sm);
+    row.append(l,r);fx.append(row);}
+  const T=A.track,tr=$('track');tr.textContent='';
+  const meter=(label,v,n,cls)=>{const w=document.createElement('div');w.className='m';const h=document.createElement('div');h.className='h';
+    const a=document.createElement('span'),b=document.createElement('span');a.textContent=label;b.textContent=pct(v)+(n!=null?' · '+n:'');h.append(a,b);
+    const bar=document.createElement('div');bar.className='bar';const i=document.createElement('i');if(cls)i.className=cls;i.style.width=((v||0)*100)+'%';bar.append(i);w.append(h,bar);tr.append(w);};
+  meter('Long calls right',T.longHit,T.longN);
+  meter('Bearish calls right',T.bearHit,T.bearN,'b');
+  meter('Always-long right',T.base,T.n,'g');
+  const note=document.createElement('p');note.className='mut sm';note.textContent='No call on '+pct(T.noCall)+' of '+T.n+' windows over '+T.days+' trading days. Avg move after a long call '+spct(T.longAvg)+' vs '+spct(T.allAvg)+' overall.';tr.append(note);
+  const edge=T.longHit!=null&&T.longN>=60?T.longHit-T.base:null,pts=edge==null?'':(edge*100).toFixed(1);
+  $('verdict').textContent=edge==null?'Too few long calls in the past year to judge the signal.':
+    edge>=0.03?'Long calls beat always-long by '+pts+' points this year. A small edge, and edges fade.':
+    edge>0?'Long calls only beat always-long by '+pts+' points. That is likely noise.':
+    'Long calls did no better than always going long. Treat them as noise.';
+}
+let busy=false;
+async function load(force){
+  const key=LS.get('td_key');const cached=readCache();
+  if(cached)render(cached);
+  if(!key){msg('Add your Twelve Data key in Settings.');return;}
+  if(busy||(cached&&!force&&Date.now()-cached.t<5*60e3))return;
+  busy=true;const btn=$('refresh');btn.disabled=true;btn.textContent='Loading…';
+  try{
+    const url='https://api.twelvedata.com/time_series?symbol=SPY&interval=1h&outputsize=5000&order=desc&apikey='+encodeURIComponent(key);
+    const res=await fetch(url);const j=await res.json();
+    if(j.status==='error'||!Array.isArray(j.values))throw new Error(j.message||('Request failed ('+res.status+')'));
+    const data={t:Date.now(),v:j.values.map(x=>[x.datetime,x.open,x.close])};
+    memCache=data;LS.set('td_spy1h',JSON.stringify(data));msg('');render(data);
+  }catch(e){msg((e&&e.message?e.message:'Could not reach Twelve Data')+(cached?' Showing the last saved data.':''));}
+  finally{busy=false;btn.disabled=false;btn.textContent='Refresh';}
+}
+$('key').value=LS.get('td_key')||'';
+$('save').addEventListener('click',()=>{const v=$('key').value.trim();if(!v){msg('Paste a key first.');return;}LS.set('td_key',v);msg('');load(true);});
+$('refresh').addEventListener('click',()=>load(true));
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)load(false);});
+const tick=setInterval(()=>{if(!document.hidden)load(false);},5*60e3);
+load(false);
+}
+</script>
+</body>
+</html>
