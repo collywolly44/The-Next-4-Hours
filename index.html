@@ -50,6 +50,12 @@ h2{font:700 18px 'Space Grotesk',sans-serif;margin:0 0 6px}
 label{display:block;font-weight:600;margin:12px 0 6px}label:first-of-type{margin-top:4px}
 input{width:100%;font:16px Inter,sans-serif;min-height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:#0b0d0c;color:var(--ink)}
 #save{margin-top:12px;width:100%}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}.two label{min-height:3em}
+.bkv{font:700 30px/1.1 'Space Grotesk',sans-serif;margin:4px 0 12px}.bkv.go{color:var(--long)}.bkv.no{color:var(--bear)}
+.lad{display:grid;gap:6px;margin-bottom:12px}
+.lv{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:12px 14px;border-radius:12px;background:#0b0d0c;font-variant-numeric:tabular-nums}
+.lv b{font:700 22px 'Space Grotesk',sans-serif;white-space:nowrap}.lv span{white-space:nowrap;font-size:14px}
+.lv.tp{background:rgba(184,245,208,.14);color:var(--long)}.lv.sl{background:rgba(255,180,166,.14);color:var(--bear)}.lv .t{color:var(--ink);font-size:13px;opacity:.8}
 .fine{color:var(--mut);font-size:13px;margin:18px 4px 0}
 @media(prefers-reduced-motion:reduce){.call{transition:none}}
 </style>
@@ -73,6 +79,13 @@ input{width:100%;font:16px Inter,sans-serif;min-height:44px;padding:0 12px;borde
     <div class="win" id="win"></div>
     <div class="win2" id="win2"></div>
   </section>
+  <section class="card bk" id="bk"><h2 id="bkh">Bracket: long 4 MES, 1:1</h2>
+    <div class="bkv" id="bkv">—</div>
+    <div class="lad" id="lad"></div>
+    <p class="sm" id="bks"></p>
+    <p class="sm" id="bkt"></p>
+    <p class="mut sm" id="bkn">Data is about 10 minutes delayed, so set the stop and target as point distances from your actual fill.</p>
+  </section>
   <section class="card"><h2>Why</h2><p class="mut sm" id="baseTxt">How often price rose over the next 4 hours, by condition, across the full history.</p><div id="factors"></div></section>
   <section class="card"><h2>Track record, past year</h2><p class="mut sm">Each call was made using only data available at that moment, then checked 4 hours later.</p><div id="track"></div><p id="verdict" class="verdict"></p></section>
   <section class="card"><h2>Settings</h2>
@@ -80,6 +93,8 @@ input{width:100%;font:16px Inter,sans-serif;min-height:44px;padding:0 12px;borde
     <input id="es" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://something.workers.dev">
     <label for="key">Twelve Data key (SPY backup)</label>
     <input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="Optional">
+    <div class="two"><div><label for="ct">MES contracts</label><input id="ct" type="number" inputmode="numeric" min="1" max="50" step="1"></div>
+    <div><label for="fee">Round-trip cost per contract ($)</label><input id="fee" type="number" inputmode="decimal" min="0" step="0.05"></div></div>
     <button id="save" class="btn" type="button">Save</button>
     <p class="mut sm">ES comes first. If the ES link fails or is blank, the app falls back to SPY, which only covers stock-market hours. Both are stored only on this phone. The app refreshes at most every 5 minutes.</p>
   </section>
@@ -104,22 +119,29 @@ function fromYahoo(j){
   const r=j&&j.chart&&j.chart.result&&j.chart.result[0];
   if(!r||!Array.isArray(r.timestamp)){throw new Error((j&&j.chart&&j.chart.error&&j.chart.error.description)||(j&&j.error)||'Unexpected response from the ES link.');}
   const q=r.indicators.quote[0],out=[];
-  for(let k=0;k<r.timestamp.length;k++){const o=q.open[k],c=q.close[k];if(o==null||c==null||!(c>0))continue;
-    const s=Math.floor(r.timestamp[k]/H)*H,b={s,e:s+H,o:+o,c:+c};if(out.length&&out[out.length-1].s===s)out[out.length-1]=b;else out.push(b);}
+  for(let k=0;k<r.timestamp.length;k++){const o=q.open[k],c=q.close[k],hi=q.high[k],lo=q.low[k];if(o==null||c==null||hi==null||lo==null||!(c>0))continue;
+    const s=Math.floor(r.timestamp[k]/H)*H,b={s,e:s+H,o:+o,h:+hi,l:+lo,c:+c};if(out.length&&out[out.length-1].s===s)out[out.length-1]=b;else out.push(b);}
   return out;
 }
 function fromTwelve(values){
   return values.map(v=>{const a=String(v.datetime).split(' '),d=a[0].split('-').map(Number),t=(a[1]||'0:0').split(':').map(Number);
-    const s=etWall(d[0],d[1],d[2],t[0],t[1]),cl=etWall(d[0],d[1],d[2],16,0);return {s,e:Math.min(s+H,cl),o:+v.open,c:+v.close};})
-    .filter(b=>isFinite(b.c)&&b.c>0&&isFinite(b.s)).sort((a,b)=>a.s-b.s);
+    const s=etWall(d[0],d[1],d[2],t[0],t[1]),cl=etWall(d[0],d[1],d[2],16,0);return {s,e:Math.min(s+H,cl),o:+v.open,h:+v.high,l:+v.low,c:+v.close};})
+    .filter(b=>isFinite(b.c)&&b.c>0&&isFinite(b.s)&&isFinite(b.h)&&isFinite(b.l)).sort((a,b)=>a.s-b.s);
 }
-function analyze(B,now,src){
+const KS=[0.5,0.75,1,1.25,1.5];
+function analyze(B,now,src,opt){
+  opt=opt||{};const mult=(opt.contracts||4)*5,fee=(opt.contracts||4)*(opt.fee==null?2:opt.fee);
   const lb=src==='es'?23:7,WARM=Math.max(300,lb*10+1),N=B.length;
   if(N<WARM+200)throw new Error('Not enough history returned ('+N+' bars).');
   const C=B.map(b=>b.c);
   const ema=new Array(N);ema[0]=C[0];const k=2/51;for(let i=1;i<N;i++)ema[i]=C[i]*k+ema[i-1]*(1-k);
   const S1=[0],S2=[0];for(let i=0;i<N;i++){const r=i?Math.log(C[i]/C[i-1]):0;S1.push(S1[i]+r);S2.push(S2[i]+r*r);}
   const sd=(i,n)=>{const a=i-n+1,s=S1[i+1]-S1[a],q=S2[i+1]-S2[a];return Math.sqrt(Math.max(q/n-(s/n)**2,0));};
+  const TR=[0];for(let i=0;i<N;i++){const b=B[i],pc=i?C[i-1]:b.o;TR.push(TR[i]+Math.max(b.h-b.l,Math.abs(b.h-pc),Math.abs(b.l-pc)));}
+  const atr=i=>(TR[i+1]-TR[Math.max(0,i-13)])/Math.min(14,i+1);
+  const sim=(i,j)=>{const e=C[i],a=atr(i);return KS.map(k=>{const D=Math.max(0.25,k*a),tp=e+D,sl=e-D;
+    for(let x=i+1;x<=j;x++){const b=B[x];if(b.o<=sl)return {pnl:b.o-e,how:-1};if(b.o>=tp)return {pnl:D,how:1};if(b.l<=sl)return {pnl:-D,how:-1};if(b.h>=tp)return {pnl:D,how:1};}
+    return {pnl:C[j]-e,how:0};});};
   const feat=(i,ses)=>{const t=C[i]>ema[i]?1:0,mo=C[i]>C[i-lb]?1:0,v=sd(i,lb)>sd(i,lb*10)?1:0;return {t,mo,v,ses,st:t|(mo<<1)|(v<<2)|(ses<<3)};};
   const S=[];
   for(let i=WARM;i<N-1;i++){
@@ -127,13 +149,19 @@ function analyze(B,now,src){
     for(let x=i+1;x<N&&B[x].e<=tg;x++)j=x;
     if(j<0||B[j].e<tg-H||B[j].e>now)continue;
     const f=feat(i,session(etMin(ee))),ret=C[j]/C[i]-1;
-    S.push({t:f.t,mo:f.mo,v:f.v,ses:f.ses,st:f.st,ee,xe:B[j].e,ret,up:ret>0});
+    S.push({t:f.t,mo:f.mo,v:f.v,ses:f.ses,st:f.st,ee,xe:B[j].e,ret,up:ret>0,k:sim(i,j)});
   }
   const cnt=Array.from({length:32},()=>({n:0,u:0,s:0}));
-  const commit=s=>{const c=cnt[s.st];c.n++;c.u+=s.up?1:0;c.s+=s.ret;};
+  const ck=Array.from({length:32},()=>KS.map(()=>({n:0,w:0,tp:0,sl:0,to:0,pts:0})));
+  const commit=s=>{const c=cnt[s.st];c.n++;c.u+=s.up?1:0;c.s+=s.ret;
+    s.k.forEach((o,q)=>{const z=ck[s.st][q];z.n++;z.pts+=o.pnl;if(o.pnl>0)z.w++;if(o.how>0)z.tp++;else if(o.how<0)z.sl++;else z.to++;});};
+  const choose=arr=>{let best=null,top=null;arr.forEach((z,q)=>{if(z.n<MINN)return;const wr=z.w/z.n,ex=z.pts/z.n*mult-fee,o={q,k:KS[q],wr,ex,n:z.n,tp:z.tp/z.n,sl:z.sl/z.n,to:z.to/z.n};
+    if(!top||wr>top.wr)top=o;if(wr>0.5&&ex>0&&(!best||ex>best.ex))best=o;});return {best,top};};
+  const cut0=now-365*86400;const trades=[];let lastExit=0;
   const callOf=c=>{if(c.n<MINN)return {p:null,call:0};const p=(c.u+1)/(c.n+2);return {p,call:p>=.55?1:p<=.45?-1:0};};
   const rec=[];let pi=0;
-  for(let q=0;q<S.length;q++){const s=S[q];while(pi<q&&S[pi].xe<=s.ee)commit(S[pi++]);rec.push({call:callOf(cnt[s.st]).call,up:s.up,ret:s.ret,ee:s.ee});}
+  for(let q=0;q<S.length;q++){const s=S[q];while(pi<q&&S[pi].xe<=s.ee)commit(S[pi++]);rec.push({call:callOf(cnt[s.st]).call,up:s.up,ret:s.ret,ee:s.ee});
+    if(s.ee>=cut0&&s.ee>=lastExit){const b=choose(ck[s.st]).best;if(b){const o=s.k[b.q];trades.push({win:o.pnl>0,usd:o.pnl*mult-fee});lastExit=s.xe;}}}
   while(pi<S.length)commit(S[pi++]);
   const rate=(a,f)=>a.length?a.filter(f).length/a.length:null;
   const mean=a=>a.length?a.reduce((x,y)=>x+y.ret,0)/a.length:null;
@@ -150,7 +178,10 @@ function analyze(B,now,src){
     mode=src==='spy'&&exit-entry<2*H?'late':'live';}
   else{mode='closed';ses=src==='es'?0:2;entry=null;exit=null;}
   const f=feat(N-1,ses),c=cnt[f.st],cc=callOf(c);
-  return {cur:{t:f.t,mo:f.mo,v:f.v,ses,mode,entry,exit,n:c.n,p:c.n?c.u/c.n:null,avg:c.n?c.s/c.n:null,call:cc.call},
+  const pick=choose(ck[f.st]),A0=atr(N-1),rd=x=>Math.max(0.25,Math.round(x*4)/4);
+  const bk={best:pick.best,top:pick.top,mult,fee,atr:A0,D:pick.best?rd(pick.best.k*A0):null,
+    trades:trades.length,tw:trades.length?trades.filter(t=>t.win).length/trades.length:null,tnet:trades.reduce((a,t)=>a+t.usd,0)};
+  return {bk,cur:{t:f.t,mo:f.mo,v:f.v,ses,mode,entry,exit,n:c.n,p:c.n?c.u/c.n:null,avg:c.n?c.s/c.n:null,call:cc.call},
     track,baseAll:rate(S,s=>s.up),samples:S.length,first:B[0].s,last,px:C[N-1],chg:C[N-1]/C[N-1-lb]-1,lb,
     marg:{t:[marg('t',0),marg('t',1)],mo:[marg('mo',0),marg('mo',1)],v:[marg('v',0),marg('v',1)],ses:[0,1,2,3].map(x=>marg('ses',x))}};
 }
@@ -163,19 +194,41 @@ const spct=x=>x==null?'—':(x>=0?'+':'')+(x*100).toFixed(2)+'%';
 const tm=sec=>new Date(sec*1000).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
 const dt=sec=>new Date(sec*1000).toLocaleString([],{weekday:'short',hour:'numeric',minute:'2-digit'});
 let mem={};
-function readCache(src){if(mem[src])return mem[src];try{const j=JSON.parse(LS.get('bars_'+src)||'null');if(j&&Array.isArray(j.b))return mem[src]=j;}catch(e){}return null;}
-function writeCache(src,bars){const d={t:Date.now(),src,b:bars.map(x=>[x.s,x.e,x.o,x.c])};mem[src]=d;LS.set('bars_'+src,JSON.stringify(d));return d;}
+function readCache(src){if(mem[src])return mem[src];try{const j=JSON.parse(LS.get('bars2_'+src)||'null');if(j&&Array.isArray(j.b))return mem[src]=j;}catch(e){}return null;}
+function writeCache(src,bars){const d={t:Date.now(),src,b:bars.map(x=>[x.s,x.e,x.o,x.c,x.h,x.l])};mem[src]=d;LS.set('bars2_'+src,JSON.stringify(d));return d;}
 function msg(t){$('msg').textContent=t||'';}
+function opts(){const c=parseInt(LS.get('ct')||'4',10),f=parseFloat(LS.get('fee')||'2');return {contracts:c>0&&c<=50?c:4,fee:f>=0&&f<50?f:2};}
+const usd=x=>(x<0?'−$':'+$')+Math.abs(x).toLocaleString(undefined,{maximumFractionDigits:0});
+const p2=x=>x.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+function renderBracket(A,es,closed){
+  const k=A.bk,o=opts();$('bkh').textContent='Bracket: long '+o.contracts+' MES, 1:1';
+  const v=$('bkv'),lad=$('lad');lad.textContent='';
+  if(!es){v.className='bkv';v.textContent='Needs the ES feed';$('bks').textContent='Stops and targets are only calculated on ES data.';$('bkt').textContent='';return;}
+  const row=(cls,name,price,detail)=>{const r=document.createElement('div');r.className='lv '+cls;const a=document.createElement('div');const t=document.createElement('div');t.className='t';t.textContent=name;const b=document.createElement('b');b.textContent=price;a.append(t,b);const s=document.createElement('span');s.textContent=detail;r.append(a,s);lad.append(r);};
+  const b=k.best;
+  if(!b){v.className='bkv no';v.textContent='SKIP';
+    $('bks').textContent=k.top?'No 1:1 bracket has won more than half the time after costs in this setup. Best was '+pct(k.top.wr)+' wins at '+k.top.k+'× hourly range, '+usd(k.top.ex)+' per trade.':'Not enough past cases of this setup.';}
+  else{v.className='bkv go';v.textContent=closed?'At the reopen: TAKE IT':'TAKE IT';
+    const D=k.D,e=Math.round(A.px*4)/4,m=k.mult;
+    row('tp','Take profit',p2(e+D),'+'+p2(D)+' pts · '+usd(D*m));
+    row('','Entry ≈ last price',p2(e),closed?'market closed':'');
+    row('sl','Stop',p2(e-D),'−'+p2(D)+' pts · '+usd(-D*m));
+    row('','Time stop','4h','close at market if neither hits');
+    $('bks').textContent='Here, target hit first '+pct(b.tp)+', stop first '+pct(b.sl)+', neither within 4h '+pct(b.to)+' (closed at the time limit). Won '+pct(b.wr)+' of '+b.n.toLocaleString()+' past trades, avg '+usd(b.ex)+' per trade after $'+k.fee.toFixed(2)+' costs. Distance = '+b.k+'× the average hourly range ('+p2(k.atr)+' pts).';}
+  $('bkt').textContent=k.trades?'Past year, taking a bracket whenever one qualified, one trade at a time: '+k.trades+' trades, '+pct(k.tw)+' won, net '+usd(k.tnet)+'.':'No qualifying bracket trades in the past year.';
+  if(b&&A.cur.call===-1)$('bkt').textContent+=' Note: the 4-hour call above is bearish.';
+}
 function nextReopen(now,src){let t=Math.ceil(now/H)*H;for(let k=0;k<24*8;k++,t+=H)if(src==='es'?esOpen(t):spyOpen(t))return t;return null;}
 function render(d){
   const src=d.src,now=Math.floor(Date.now()/1000);let A;
-  try{A=analyze(d.b.map(x=>({s:x[0],e:x[1],o:x[2],c:x[3]})),now,src);}catch(e){msg(e.message);return;}
+  try{A=analyze(d.b.map(x=>({s:x[0],e:x[1],o:x[2],c:x[3],h:x[4],l:x[5]})),now,src,opts());}catch(e){msg(e.message);return;}
   const c=A.cur,es=src==='es';
   $('sym').textContent=es?'ES':'SPY';
   $('px').textContent=es?A.px.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):A.px.toFixed(2);
   const ch=$('chg');ch.textContent=spct(A.chg)+(es?' 24h':' 1d');ch.className=A.chg>=0?'up':'dn';
   const mins=Math.round((Date.now()-d.t)/60000);
   $('asof').textContent='Last bar '+dt(A.last.s)+' · fetched '+(mins<1?'just now':mins+' min ago');
+  renderBracket(A,es,c.mode==='closed');
   $('call').className='call '+(c.call===1?'long':c.call===-1?'bear':'flat');
   $('word').textContent=c.n<MINN?'NO DATA':c.call===1?'LONG':c.call===-1?'BEARISH':'NO EDGE';
   const ro=c.mode==='closed'?nextReopen(now,src):null;
@@ -243,10 +296,11 @@ async function load(force){
   }catch(e){msg((e&&e.message?e.message:'Could not load data.')+(cached?' Showing the last saved data.':''));}
   finally{busy=false;btn.disabled=false;btn.textContent='Refresh';}
 }
-$('es').value=LS.get('es_link')||'';$('key').value=LS.get('td_key')||'';
+$('es').value=LS.get('es_link')||'';$('key').value=LS.get('td_key')||'';$('ct').value=String(opts().contracts);$('fee').value=opts().fee.toFixed(2);
 $('save').addEventListener('click',()=>{const l=$('es').value.trim(),k=$('key').value.trim();
   if(l&&!/^https:\/\//i.test(l)){msg('The ES link should start with https://');return;}
-  LS.set('es_link',l);LS.set('td_key',k);msg('');load(true);});
+  const ct=parseInt($('ct').value,10),fe=parseFloat($('fee').value);if(!(ct>=1&&ct<=50)){msg('Contracts must be 1 to 50.');return;}if(!(fe>=0&&fe<50)){msg('Enter a cost per contract, like 2.00.');return;}
+  LS.set('es_link',l);LS.set('td_key',k);LS.set('ct',String(ct));LS.set('fee',String(fe));msg('');for(const x in mem)delete mem[x];load(true);});
 $('refresh').addEventListener('click',()=>load(true));
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load(false);});
 const tick=setInterval(()=>{if(!document.hidden)load(false);},5*60e3);
