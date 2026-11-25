@@ -37,7 +37,7 @@ body{font:16px/1.5 Inter,system-ui,sans-serif;padding:env(safe-area-inset-top) 0
 .sub{font-size:16px;max-width:38ch}
 .meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid rgba(0,0,0,.15)}
 .meta .k{display:block;font-size:13px;opacity:.7}.meta .v{font:700 22px 'Space Grotesk',sans-serif;white-space:nowrap;font-variant-numeric:tabular-nums}
-.win{margin-top:14px;font-weight:600;font-size:15px}
+.win{margin-top:14px;font-weight:600;font-size:15px}.win2{font-size:14px;opacity:.75}
 .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:14px}
 h2{font:700 18px 'Space Grotesk',sans-serif;margin:0 0 6px}
 .f{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line)}.f:first-child{border-top:0}
@@ -47,9 +47,9 @@ h2{font:700 18px 'Space Grotesk',sans-serif;margin:0 0 6px}
 .bar::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--bg)}
 .bar i{display:block;height:100%;background:var(--long)}.bar i.b{background:var(--bear)}.bar i.g{background:var(--mut)}
 .verdict{font-weight:600;margin:12px 0 0}
-label{display:block;font-weight:600;margin-bottom:6px}
-.row{display:flex;gap:8px}
-input{flex:1;font:16px Inter,sans-serif;min-height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:#0b0d0c;color:var(--ink)}
+label{display:block;font-weight:600;margin:12px 0 6px}label:first-of-type{margin-top:4px}
+input{width:100%;font:16px Inter,sans-serif;min-height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:#0b0d0c;color:var(--ink)}
+#save{margin-top:12px;width:100%}
 .fine{color:var(--mut);font-size:13px;margin:18px 4px 0}
 @media(prefers-reduced-motion:reduce){.call{transition:none}}
 </style>
@@ -57,126 +57,145 @@ input{flex:1;font:16px Inter,sans-serif;min-height:44px;padding:0 12px;border-ra
 <body>
 <div class="wrap">
   <header class="top">
-    <div><div class="tk">SPY <span id="px">—</span> <span id="chg"></span></div><div class="mut sm" id="asof">No data yet</div></div>
+    <div><div class="tk"><span id="sym">ES</span> <span id="px">—</span> <span id="chg"></span></div><div class="mut sm" id="asof">No data yet</div></div>
     <button id="refresh" class="btn" type="button">Refresh</button>
   </header>
   <p id="msg"></p>
   <section id="call" class="call flat" aria-live="polite">
     <div class="lbl" id="callFor">Next 4 hours</div>
     <div class="word" id="word">—</div>
-    <div class="sub" id="sub">Add your free Twelve Data key in Settings to start.</div>
+    <div class="sub" id="sub">Add your ES data link in Settings to start.</div>
     <div class="meta">
       <div><span class="k">Up in this setup</span><span class="v" id="pup">—</span></div>
       <div><span class="k">Past cases</span><span class="v" id="n">—</span></div>
       <div><span class="k">Avg 4h move</span><span class="v" id="avg">—</span></div>
     </div>
     <div class="win" id="win"></div>
+    <div class="win2" id="win2"></div>
   </section>
-  <section class="card"><h2>Why</h2><p class="mut sm" id="baseTxt">How often SPY rose over the window, by condition, across the full history.</p><div id="factors"></div></section>
-  <section class="card"><h2>Track record, past year</h2><p class="mut sm">Each call was made using only data available at that moment, then checked at the end of its window.</p><div id="track"></div><p id="verdict" class="verdict"></p></section>
+  <section class="card"><h2>Why</h2><p class="mut sm" id="baseTxt">How often price rose over the next 4 hours, by condition, across the full history.</p><div id="factors"></div></section>
+  <section class="card"><h2>Track record, past year</h2><p class="mut sm">Each call was made using only data available at that moment, then checked 4 hours later.</p><div id="track"></div><p id="verdict" class="verdict"></p></section>
   <section class="card"><h2>Settings</h2>
-    <label for="key">Twelve Data API key</label>
-    <div class="row"><input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste key"><button id="save" class="btn" type="button">Save</button></div>
-    <p class="mut sm">Free key at twelvedata.com. Stored only on this phone. Each refresh uses 1 of your 800 daily credits; the app refreshes at most every 5 minutes.</p>
+    <label for="es">ES data link (your Cloudflare Worker)</label>
+    <input id="es" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://something.workers.dev">
+    <label for="key">Twelve Data key (SPY backup)</label>
+    <input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="Optional">
+    <button id="save" class="btn" type="button">Save</button>
+    <p class="mut sm">ES comes first. If the ES link fails or is blank, the app falls back to SPY, which only covers stock-market hours. Both are stored only on this phone. The app refreshes at most every 5 minutes.</p>
   </section>
-  <p class="fine">SPY stands in for ES/MES and can't see overnight futures trading, so windows run during the stock session only and end no later than the 4:00 PM ET close. These are statistics, not advice: a 55% setup still loses 45% of the time.</p>
+  <p class="fine">ES prices come from Yahoo Finance's free feed, typically about 10 minutes delayed. The 4-hour window runs on the clock, round the clock, and stops at Friday's 5 PM ET close. These are statistics, not advice: a 55% setup still loses 45% of the time.</p>
 </div>
 <script>
 {
 /*ENGINE*/
-const OPEN=570,CLOSE=960,IV=60,WARM=350,MINN=30;
-const closeMin=b=>Math.min(b.m+IV,CLOSE);
-function etNow(date){
-  const f=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false,weekday:'short'});
-  const p={};for(const x of f.formatToParts(date||new Date()))p[x.type]=x.value;
-  return {d:p.year+'-'+p.month+'-'+p.day,m:((+p.hour)%24)*60+(+p.minute),wd:p.weekday};
+const H=3600,WIN=4*H,MINN=30;
+const SESS=['Asia','London','US','Late'];
+const FET=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'numeric',hour12:false});
+const offCache=new Map();
+function etOff(sec){const k=Math.floor(sec/21600);let o=offCache.get(k);if(o==null){const p={};for(const x of FET.formatToParts(new Date(sec*1000)))p[x.type]=x.value;
+  o=Math.round((Date.UTC(+p.year,+p.month-1,+p.day,(+p.hour)%24,+p.minute)/1000-sec)/60)*60;offCache.set(k,o);}return o;}
+const etMin=sec=>{const s=sec+etOff(sec);return Math.floor((((s%86400)+86400)%86400)/60);};
+const etDow=sec=>{const s=sec+etOff(sec);return ((Math.floor(s/86400)+4)%7+7)%7;};
+const etWall=(y,mo,d,h,mi)=>{const w=Date.UTC(y,mo-1,d,h,mi)/1000;return w-etOff(w+5*H);};
+const session=m=>m>=1080||m<120?0:m<570?1:m<960?2:3;
+function esOpen(sec){const d=etDow(sec),m=etMin(sec);if(d===6)return false;if(d===5&&m>=1020)return false;if(d===0&&m<1080)return false;return !(m>=1020&&m<1080);}
+function spyOpen(sec){const d=etDow(sec),m=etMin(sec);return d>0&&d<6&&m>=570&&m<960;}
+function fromYahoo(j){
+  const r=j&&j.chart&&j.chart.result&&j.chart.result[0];
+  if(!r||!Array.isArray(r.timestamp)){throw new Error((j&&j.chart&&j.chart.error&&j.chart.error.description)||(j&&j.error)||'Unexpected response from the ES link.');}
+  const q=r.indicators.quote[0],out=[];
+  for(let k=0;k<r.timestamp.length;k++){const o=q.open[k],c=q.close[k];if(o==null||c==null||!(c>0))continue;
+    const s=Math.floor(r.timestamp[k]/H)*H,b={s,e:s+H,o:+o,c:+c};if(out.length&&out[out.length-1].s===s)out[out.length-1]=b;else out.push(b);}
+  return out;
 }
-function parse(values){
-  return values.map(v=>{const s=String(v[0]).split(' ');const t=(s[1]||'00:00').split(':').map(Number);return {d:s[0],m:t[0]*60+t[1],o:+v[1],c:+v[2]};})
-    .filter(b=>b.d&&isFinite(b.c)&&isFinite(b.o)&&b.c>0&&b.m>=OPEN&&b.m<CLOSE)
-    .sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:a.m-b.m);
+function fromTwelve(values){
+  return values.map(v=>{const a=String(v.datetime).split(' '),d=a[0].split('-').map(Number),t=(a[1]||'0:0').split(':').map(Number);
+    const s=etWall(d[0],d[1],d[2],t[0],t[1]),cl=etWall(d[0],d[1],d[2],16,0);return {s,e:Math.min(s+H,cl),o:+v.open,c:+v.close};})
+    .filter(b=>isFinite(b.c)&&b.c>0&&isFinite(b.s)).sort((a,b)=>a.s-b.s);
 }
-function analyze(B,now){
-  const N=B.length;if(N<WARM+250)throw new Error('Not enough history returned ('+N+' bars).');
+function analyze(B,now,src){
+  const lb=src==='es'?23:7,WARM=Math.max(300,lb*10+1),N=B.length;
+  if(N<WARM+200)throw new Error('Not enough history returned ('+N+' bars).');
   const C=B.map(b=>b.c);
   const ema=new Array(N);ema[0]=C[0];const k=2/51;for(let i=1;i<N;i++)ema[i]=C[i]*k+ema[i-1]*(1-k);
   const S1=[0],S2=[0];for(let i=0;i<N;i++){const r=i?Math.log(C[i]/C[i-1]):0;S1.push(S1[i]+r);S2.push(S2[i]+r*r);}
   const sd=(i,n)=>{const a=i-n+1,s=S1[i+1]-S1[a],q=S2[i+1]-S2[a];return Math.sqrt(Math.max(q/n-(s/n)**2,0));};
-  const feat=(i,b)=>{if(i<WARM)return null;const t=C[i]>ema[i]?1:0,mo=C[i]>C[i-7]?1:0,v=sd(i,35)>sd(i,350)?1:0;return {t,mo,v,b,st:t|(mo<<1)|(v<<2)|(b<<3)};};
-  const days=[];for(let i=0;i<N;i++){const L=days[days.length-1];if(!L||L.d!==B[i].d)days.push({d:B[i].d,s:i,e:i});else L.e=i;}
-  const wk=now.wd!=='Sat'&&now.wd!=='Sun';
-  const livePartial=wk&&now.d===B[N-1].d&&now.m>=OPEN&&now.m<CLOSE;
-  const samples=[];
-  for(let di=1;di<days.length;di++){
-    const D=days[di],out=[];
-    const add=(fi,em,epx,b)=>{const f=feat(fi,b);if(!f)return;const tg=Math.min(em+240,CLOSE);let j=-1;
-      for(let x=D.s;x<=D.e;x++)if(closeMin(B[x])<=tg)j=x;
-      if(j<0||closeMin(B[j])!==tg||(livePartial&&j===N-1))return;
-      const ret=C[j]/epx-1;out.push({t:f.t,mo:f.mo,v:f.v,b:f.b,st:f.st,ret,up:ret>0,d:D.d});};
-    if(B[D.s].m===OPEN)add(days[di-1].e,OPEN,B[D.s].o,0);
-    for(let x=D.s;x<=D.e;x++){const cm=closeMin(B[x]);if(cm>=630&&cm<=810&&!(livePartial&&x===N-1))add(x,cm,C[x],cm<=690?0:1);}
-    samples.push(out);
+  const feat=(i,ses)=>{const t=C[i]>ema[i]?1:0,mo=C[i]>C[i-lb]?1:0,v=sd(i,lb)>sd(i,lb*10)?1:0;return {t,mo,v,ses,st:t|(mo<<1)|(v<<2)|(ses<<3)};};
+  const S=[];
+  for(let i=WARM;i<N-1;i++){
+    const ee=B[i].e;if(ee>now)break;const tg=ee+WIN;let j=-1;
+    for(let x=i+1;x<N&&B[x].e<=tg;x++)j=x;
+    if(j<0||B[j].e<tg-H||B[j].e>now)continue;
+    const f=feat(i,session(etMin(ee))),ret=C[j]/C[i]-1;
+    S.push({t:f.t,mo:f.mo,v:f.v,ses:f.ses,st:f.st,ee,xe:B[j].e,ret,up:ret>0});
   }
-  const cnt=Array.from({length:16},()=>({n:0,u:0,s:0}));
+  const cnt=Array.from({length:32},()=>({n:0,u:0,s:0}));
+  const commit=s=>{const c=cnt[s.st];c.n++;c.u+=s.up?1:0;c.s+=s.ret;};
   const callOf=c=>{if(c.n<MINN)return {p:null,call:0};const p=(c.u+1)/(c.n+2);return {p,call:p>=.55?1:p<=.45?-1:0};};
-  const rec=[];
-  for(const out of samples){
-    for(const s of out)rec.push({call:callOf(cnt[s.st]).call,up:s.up,ret:s.ret,d:s.d});
-    for(const s of out){const c=cnt[s.st];c.n++;c.u+=s.up?1:0;c.s+=s.ret;}
-  }
-  const flat=samples.flat();
+  const rec=[];let pi=0;
+  for(let q=0;q<S.length;q++){const s=S[q];while(pi<q&&S[pi].xe<=s.ee)commit(S[pi++]);rec.push({call:callOf(cnt[s.st]).call,up:s.up,ret:s.ret,ee:s.ee});}
+  while(pi<S.length)commit(S[pi++]);
   const rate=(a,f)=>a.length?a.filter(f).length/a.length:null;
   const mean=a=>a.length?a.reduce((x,y)=>x+y.ret,0)/a.length:null;
-  const marg=(key,val)=>{const a=flat.filter(s=>s[key]===val);return {n:a.length,p:rate(a,s=>s.up)};};
-  const allD=[...new Set(rec.map(x=>x.d))];const ci=Math.max(0,allD.length-250),cut=allD[ci];
-  const R=rec.filter(x=>x.d>=cut),L=R.filter(x=>x.call===1),Br=R.filter(x=>x.call===-1);
-  const track={n:R.length,days:allD.length-ci,from:cut,longN:L.length,longHit:rate(L,x=>x.up),bearN:Br.length,bearHit:rate(Br,x=>!x.up),
-    base:rate(R,x=>x.up),noCall:rate(R,x=>x.call===0),longAvg:mean(L),allAvg:mean(R),callHit:rate(L.concat(Br),x=>x.call===1?x.up:!x.up)};
-  const today=B[N-1].d===now.d;let mode,b,em;
-  if(wk&&today&&now.m>=OPEN&&now.m<810){mode='live';b=now.m<=720?0:1;em=now.m;}
-  else if(wk&&today&&now.m>=810&&now.m<CLOSE){mode='late';b=0;em=OPEN;}
-  else{mode='next';b=0;em=OPEN;}
-  const f=feat(N-1,b),c=cnt[f.st],cc=callOf(c);
-  const prevE=days.length>1?days[days.length-2].e:0;
-  return {cur:{t:f.t,mo:f.mo,v:f.v,b,mode,em,xm:Math.min(em+240,CLOSE),n:c.n,p:c.n?c.u/c.n:null,avg:c.n?c.s/c.n:null,call:cc.call},
-    track,baseAll:rate(flat,s=>s.up),samples:flat.length,
-    marg:{t:[marg('t',0),marg('t',1)],mo:[marg('mo',0),marg('mo',1)],v:[marg('v',0),marg('v',1)],b:[marg('b',0),marg('b',1)]},
-    last:B[N-1],px:C[N-1],chg:C[N-1]/C[prevE]-1,first:B[0].d};
+  const marg=(key,val)=>{const a=S.filter(s=>s[key]===val);return {n:a.length,p:rate(a,s=>s.up)};};
+  const cut=Math.max(now-365*86400,rec.length?rec[0].ee:now);
+  const R=rec.filter(x=>x.ee>=cut),L=R.filter(x=>x.call===1),Br=R.filter(x=>x.call===-1);
+  const track={n:R.length,days:Math.round((now-cut)/86400),longN:L.length,longHit:rate(L,x=>x.up),bearN:Br.length,bearHit:rate(Br,x=>!x.up),
+    base:rate(R,x=>x.up),noCall:rate(R,x=>x.call===0),longAvg:mean(L),allAvg:mean(R)};
+  const last=B[N-1],stale=now-last.e>2*H;
+  let open=(src==='es'?esOpen(now):spyOpen(now))&&!stale,ses,entry,exit,mode;
+  if(open){entry=now;ses=session(etMin(now));exit=now+WIN;
+    if(src==='es'&&etDow(now)===5&&etMin(now)+240>1020)exit=now+(1020-etMin(now))*60;
+    if(src==='spy')exit=Math.min(exit,etWall(...ymdET(now),16,0));
+    mode=src==='spy'&&exit-entry<2*H?'late':'live';}
+  else{mode='closed';ses=src==='es'?0:2;entry=null;exit=null;}
+  const f=feat(N-1,ses),c=cnt[f.st],cc=callOf(c);
+  return {cur:{t:f.t,mo:f.mo,v:f.v,ses,mode,entry,exit,n:c.n,p:c.n?c.u/c.n:null,avg:c.n?c.s/c.n:null,call:cc.call},
+    track,baseAll:rate(S,s=>s.up),samples:S.length,first:B[0].s,last,px:C[N-1],chg:C[N-1]/C[N-1-lb]-1,lb,
+    marg:{t:[marg('t',0),marg('t',1)],mo:[marg('mo',0),marg('mo',1)],v:[marg('v',0),marg('v',1)],ses:[0,1,2,3].map(x=>marg('ses',x))}};
 }
+function ymdET(sec){const s=sec+etOff(sec),d=new Date(s*1000);return [d.getUTCFullYear(),d.getUTCMonth()+1,d.getUTCDate()];}
 /*END*/
 const $=id=>document.getElementById(id);
 const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}};
 const pct=(x,d=0)=>x==null?'—':(x*100).toFixed(d)+'%';
 const spct=x=>x==null?'—':(x>=0?'+':'')+(x*100).toFixed(2)+'%';
-let memCache=null;
-function readCache(){if(memCache)return memCache;try{const j=JSON.parse(LS.get('td_spy1h')||'null');if(j&&Array.isArray(j.v))return memCache=j;}catch(e){}return null;}
+const tm=sec=>new Date(sec*1000).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+const dt=sec=>new Date(sec*1000).toLocaleString([],{weekday:'short',hour:'numeric',minute:'2-digit'});
+let mem={};
+function readCache(src){if(mem[src])return mem[src];try{const j=JSON.parse(LS.get('bars_'+src)||'null');if(j&&Array.isArray(j.b))return mem[src]=j;}catch(e){}return null;}
+function writeCache(src,bars){const d={t:Date.now(),src,b:bars.map(x=>[x.s,x.e,x.o,x.c])};mem[src]=d;LS.set('bars_'+src,JSON.stringify(d));return d;}
 function msg(t){$('msg').textContent=t||'';}
-function clock(now){const dn=new Date();let off=dn.getHours()*60+dn.getMinutes()-now.m;if(off>720)off-=1440;if(off<-720)off+=1440;
-  return m=>{m=((m+off)%1440+1440)%1440;let h=Math.floor(m/60);const mm=m%60,ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+String(mm).padStart(2,'0')+' '+ap;};}
-function render(data){
-  let A;const now=etNow();
-  try{A=analyze(parse(data.v),now);}catch(e){msg(e.message);return;}
-  const tl=clock(now),c=A.cur;
-  $('px').textContent=A.px.toFixed(2);
-  const ch=$('chg');ch.textContent=spct(A.chg);ch.className=A.chg>=0?'up':'dn';
-  const mins=Math.round((Date.now()-data.t)/60000);
-  $('asof').textContent='Last bar '+A.last.d.slice(5)+' '+tl(A.last.m)+' · fetched '+(mins<1?'just now':mins+' min ago');
-  const box=$('call');box.className='call '+(c.call===1?'long':c.call===-1?'bear':'flat');
+function nextReopen(now,src){let t=Math.ceil(now/H)*H;for(let k=0;k<24*8;k++,t+=H)if(src==='es'?esOpen(t):spyOpen(t))return t;return null;}
+function render(d){
+  const src=d.src,now=Math.floor(Date.now()/1000);let A;
+  try{A=analyze(d.b.map(x=>({s:x[0],e:x[1],o:x[2],c:x[3]})),now,src);}catch(e){msg(e.message);return;}
+  const c=A.cur,es=src==='es';
+  $('sym').textContent=es?'ES':'SPY';
+  $('px').textContent=es?A.px.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):A.px.toFixed(2);
+  const ch=$('chg');ch.textContent=spct(A.chg)+(es?' 24h':' 1d');ch.className=A.chg>=0?'up':'dn';
+  const mins=Math.round((Date.now()-d.t)/60000);
+  $('asof').textContent='Last bar '+dt(A.last.s)+' · fetched '+(mins<1?'just now':mins+' min ago');
+  $('call').className='call '+(c.call===1?'long':c.call===-1?'bear':'flat');
   $('word').textContent=c.n<MINN?'NO DATA':c.call===1?'LONG':c.call===-1?'BEARISH':'NO EDGE';
-  $('callFor').textContent=c.mode==='live'?(c.b?'Now → the close':'Now → next 4 hours'):c.mode==='late'?'Too late today · call for the next open':'Call for the next open';
+  const ro=c.mode==='closed'?nextReopen(now,src):null;
+  $('callFor').textContent=c.mode==='live'?'Now → next 4 hours · '+SESS[c.ses]+' session':c.mode==='late'?'Under 2h left in the SPY session':'Market closed · call for the reopen'+(ro?' ('+dt(ro)+')':'');
   const base=A.baseAll;
   $('sub').textContent=c.n<MINN?'Not enough past cases of this setup to call it.':
-    c.call===1?'This setup has risen more often than a typical window ('+pct(base)+').':
+    c.call===1?'This setup has risen more often than a typical 4-hour window ('+pct(base)+').':
     c.call===-1?'This setup has fallen more often than not. Long-only? Sit this one out.':
     'No clear edge. Up '+pct(c.p)+' of the time vs '+pct(base)+' for a typical window.';
-  $('pup').textContent=pct(c.p);$('n').textContent=String(c.n);$('avg').textContent=spct(c.avg);
-  const hrs=((c.xm-c.em)/60).toFixed(1).replace('.0','');
-  $('win').textContent=c.mode==='live'?'Hold until '+tl(c.xm)+' ('+hrs+'h)':'Enter at the open, '+tl(OPEN)+' · hold until '+tl(c.xm);
-  $('baseTxt').textContent='How often SPY rose over the window, by condition, across '+A.samples.toLocaleString()+' past windows since '+A.first+'. Typical: '+pct(base)+'.';
+  $('pup').textContent=pct(c.p);$('n').textContent=c.n.toLocaleString();
+  const pts=c.avg==null?null:c.avg*A.px;
+  $('avg').textContent=pts==null?'—':es?(pts>=0?'+':'')+pts.toFixed(1)+' pts':spct(c.avg);
+  if(c.mode==='live'||c.mode==='late'){const h=((c.exit-c.entry)/3600).toFixed(1).replace('.0','');$('win').textContent='Hold until '+tm(c.exit)+' ('+h+'h)'+(es&&c.exit-c.entry<WIN?', Friday close':'');}
+  else $('win').textContent=ro?'Enter at '+dt(ro)+' · hold 4 hours':'';
+  $('win2').textContent=es&&pts!=null?'Avg move ≈ $'+Math.abs(pts*5).toFixed(2)+' per MES contract ('+(pts>=0?'up':'down')+')':'';
+  $('baseTxt').textContent='How often '+(es?'ES':'SPY')+' rose over the next 4 hours, by condition, across '+A.samples.toLocaleString()+' past windows since '+new Date(A.first*1000).toLocaleDateString()+'. Typical: '+pct(base)+'. Windows overlap, so case counts overstate how independent they are.';
   const F=[['Trend',c.t?'Above its 50-hour average':'Below its 50-hour average',A.marg.t[c.t]],
-    ['Momentum',c.mo?'Higher than a day ago':'Lower than a day ago',A.marg.mo[c.mo]],
+    ['Momentum',c.mo?(es?'Higher than 24h ago':'Higher than a day ago'):(es?'Lower than 24h ago':'Lower than a day ago'),A.marg.mo[c.mo]],
     ['Volatility',c.v?'Choppier than usual':'Calmer than usual',A.marg.v[c.v]],
-    ['Window',c.b?'Short, ends at the close':'Full 4 hours',A.marg.b[c.b]]];
+    ['Session',SESS[c.ses]+(c.ses===0?' (6 PM–2 AM ET)':c.ses===1?' (2–9:30 AM ET)':c.ses===2?' (9:30 AM–4 PM ET)':' (4–6 PM ET)'),A.marg.ses[c.ses]]];
   const fx=$('factors');fx.textContent='';
   for(const [k,s,m] of F){const row=document.createElement('div');row.className='f';
     const l=document.createElement('div'),b=document.createElement('b'),sp=document.createElement('span');b.textContent=k;sp.className='mut sm';sp.textContent=s;l.append(b,sp);
@@ -184,36 +203,50 @@ function render(data){
     row.append(l,r);fx.append(row);}
   const T=A.track,tr=$('track');tr.textContent='';
   const meter=(label,v,n,cls)=>{const w=document.createElement('div');w.className='m';const h=document.createElement('div');h.className='h';
-    const a=document.createElement('span'),b=document.createElement('span');a.textContent=label;b.textContent=pct(v)+(n!=null?' · '+n:'');h.append(a,b);
+    const a=document.createElement('span'),b=document.createElement('span');a.textContent=label;b.textContent=pct(v)+(n!=null?' · '+n.toLocaleString():'');h.append(a,b);
     const bar=document.createElement('div');bar.className='bar';const i=document.createElement('i');if(cls)i.className=cls;i.style.width=((v||0)*100)+'%';bar.append(i);w.append(h,bar);tr.append(w);};
   meter('Long calls right',T.longHit,T.longN);
   meter('Bearish calls right',T.bearHit,T.bearN,'b');
   meter('Always-long right',T.base,T.n,'g');
-  const note=document.createElement('p');note.className='mut sm';note.textContent='No call on '+pct(T.noCall)+' of '+T.n+' windows over '+T.days+' trading days. Avg move after a long call '+spct(T.longAvg)+' vs '+spct(T.allAvg)+' overall.';tr.append(note);
-  const edge=T.longHit!=null&&T.longN>=60?T.longHit-T.base:null,pts=edge==null?'':(edge*100).toFixed(1);
+  const mv=x=>x==null?'—':es?((x*A.px>=0?'+':'')+(x*A.px).toFixed(1)+' pts'):spct(x);
+  const note=document.createElement('p');note.className='mut sm';note.textContent='No call on '+pct(T.noCall)+' of '+T.n.toLocaleString()+' windows over '+T.days+' days. Avg move after a long call '+mv(T.longAvg)+' vs '+mv(T.allAvg)+' overall.';tr.append(note);
+  const edge=T.longHit!=null&&T.longN>=60?T.longHit-T.base:null,ep=edge==null?'':(edge*100).toFixed(1);
   $('verdict').textContent=edge==null?'Too few long calls in the past year to judge the signal.':
-    edge>=0.03?'Long calls beat always-long by '+pts+' points this year. A small edge, and edges fade.':
-    edge>0?'Long calls only beat always-long by '+pts+' points. That is likely noise.':
+    edge>=0.03?'Long calls beat always-long by '+ep+' points this year. A small edge, and edges fade.':
+    edge>0?'Long calls only beat always-long by '+ep+' points. That is likely noise.':
     'Long calls did no better than always going long. Treat them as noise.';
+}
+async function fetchES(link){
+  const u=link+(link.includes('?')?'&':'?')+'symbol=ES%3DF';
+  const res=await fetch(u);let j;try{j=await res.json();}catch(e){throw new Error('ES link returned '+res.status+', not data.');}
+  if(!res.ok&&!(j&&j.chart))throw new Error('ES link: '+(j&&j.error?j.error:'error '+res.status));
+  return fromYahoo(j);
+}
+async function fetchSPY(key){
+  const res=await fetch('https://api.twelvedata.com/time_series?symbol=SPY&interval=1h&outputsize=5000&order=desc&apikey='+encodeURIComponent(key));
+  const j=await res.json();if(j.status==='error'||!Array.isArray(j.values))throw new Error(j.message||('Twelve Data error '+res.status));
+  return fromTwelve(j.values);
 }
 let busy=false;
 async function load(force){
-  const key=LS.get('td_key');const cached=readCache();
-  if(cached)render(cached);
-  if(!key){msg('Add your Twelve Data key in Settings.');return;}
+  const link=(LS.get('es_link')||'').trim(),key=(LS.get('td_key')||'').trim();
+  const want=link?'es':key?'spy':null;
+  if(!want){msg('Add your ES data link (or a Twelve Data key) in Settings.');return;}
+  const cached=readCache(want);if(cached)render(cached);
   if(busy||(cached&&!force&&Date.now()-cached.t<5*60e3))return;
   busy=true;const btn=$('refresh');btn.disabled=true;btn.textContent='Loading…';
   try{
-    const url='https://api.twelvedata.com/time_series?symbol=SPY&interval=1h&outputsize=5000&order=desc&apikey='+encodeURIComponent(key);
-    const res=await fetch(url);const j=await res.json();
-    if(j.status==='error'||!Array.isArray(j.values))throw new Error(j.message||('Request failed ('+res.status+')'));
-    const data={t:Date.now(),v:j.values.map(x=>[x.datetime,x.open,x.close])};
-    memCache=data;LS.set('td_spy1h',JSON.stringify(data));msg('');render(data);
-  }catch(e){msg((e&&e.message?e.message:'Could not reach Twelve Data')+(cached?' Showing the last saved data.':''));}
+    if(want==='es'){
+      try{const b=await fetchES(link);msg('');render(writeCache('es',b));}
+      catch(e){if(!key)throw e;const b=await fetchSPY(key);msg(e.message+' Showing SPY instead.');render(writeCache('spy',b));}
+    }else{const b=await fetchSPY(key);msg('');render(writeCache('spy',b));}
+  }catch(e){msg((e&&e.message?e.message:'Could not load data.')+(cached?' Showing the last saved data.':''));}
   finally{busy=false;btn.disabled=false;btn.textContent='Refresh';}
 }
-$('key').value=LS.get('td_key')||'';
-$('save').addEventListener('click',()=>{const v=$('key').value.trim();if(!v){msg('Paste a key first.');return;}LS.set('td_key',v);msg('');load(true);});
+$('es').value=LS.get('es_link')||'';$('key').value=LS.get('td_key')||'';
+$('save').addEventListener('click',()=>{const l=$('es').value.trim(),k=$('key').value.trim();
+  if(l&&!/^https:\/\//i.test(l)){msg('The ES link should start with https://');return;}
+  LS.set('es_link',l);LS.set('td_key',k);msg('');load(true);});
 $('refresh').addEventListener('click',()=>load(true));
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load(false);});
 const tick=setInterval(()=>{if(!document.hidden)load(false);},5*60e3);
